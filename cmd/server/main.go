@@ -21,16 +21,18 @@ func main() {
 	certFile := os.Getenv("CERT_FILE")
 	keyFile := os.Getenv("KEY_FILE")
 	auth := InsecureAuth{}
-	handler, err := httphandler.New(httphandler.Options{
+	options, err := httphandler.NewOptions(httphandler.Options{
 		Issuer:     issuer,
 		Expiration: expiration,
 		CertFile:   certFile,
 		KeyFile:    keyFile,
-		Auth:       auth,
 	})
 	if err != nil {
 		log.Fatalf("failed to start server: %v\n", err)
 	}
-	http.Handle("/", handler)
+	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := httphandler.NewHandler(options, auth)
+		handler.ServeHTTP(w, r)
+	}))
 	http.ListenAndServe(":8080", nil)
 }

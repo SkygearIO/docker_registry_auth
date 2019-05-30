@@ -12,7 +12,7 @@ import (
 
 // None of the option fields has default value.
 // You must specify every field.
-handler, err := httphandler.New(httphandler.Options{
+options, err := httphandler.NewOptions(httphandler.Options{
 	// It must match REGISTRY_AUTH_TOKEN_ISSUER
 	Issuer: "issuer",
 	// How long the token is valid after it is issued, in seconds.
@@ -21,11 +21,12 @@ handler, err := httphandler.New(httphandler.Options{
 	// Particularly, CertFile should have the same content as REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE
 	CertFile: "/path/my.crt",
 	KeyFile: "/path/my.key",
-	// A type implementing "github.com/skygeario/docker_registry_auth/pkg/auth".Auth
-	// The handler itself delegates authentication and authorization
-	// to this interface. Authenticate and authorization in any way you want.
-	Auth: myauth,
 })
+// A type implementing "github.com/skygeario/docker_registry_auth/pkg/auth".Auth
+// The handler itself delegates authentication and authorization
+// to this interface. Authenticate and authorization in any way you want.
+myauth := ...
+handler := httphandler.NewHandler(options, myauth)
 // Mount the handler in any way you want.
 // If you mount it at https://auth.example.com/docker
 // then REGISTRY_AUTH_TOKEN_REALM=https://auth.example.com/docker
