@@ -48,6 +48,8 @@ func ParseRequest(r *http.Request) (authRequest AuthRequest, err error) {
 	}
 	authRequest.Service = service
 
+	// docker login myregistry.local
+	// does not include scope.
 	scopes := []Scope{}
 	for _, scopeStr := range r.Form["scope"] {
 		parts := strings.Split(scopeStr, ":")
@@ -66,10 +68,6 @@ func ParseRequest(r *http.Request) (authRequest AuthRequest, err error) {
 			Actions: actions,
 		}
 		scopes = append(scopes, scope)
-	}
-	if len(scopes) <= 0 {
-		err = errors.New("missing query param: scope")
-		return
 	}
 	authRequest.Scopes = scopes
 
