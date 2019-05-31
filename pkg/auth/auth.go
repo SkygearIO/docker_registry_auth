@@ -8,10 +8,11 @@ import (
 )
 
 type AuthRequest struct {
-	Username string
-	Password string
-	Service  string
-	Scopes   []Scope
+	HTTPRequest *http.Request
+	Username    string
+	Password    string
+	Service     string
+	Scopes      []Scope
 }
 
 type Scope struct {
@@ -25,6 +26,8 @@ type Auth interface {
 }
 
 func ParseRequest(r *http.Request) (authRequest AuthRequest, err error) {
+	authRequest.HTTPRequest = r
+
 	username, password, ok := r.BasicAuth()
 	if !ok {
 		err = errors.New("missing Authorization header")
