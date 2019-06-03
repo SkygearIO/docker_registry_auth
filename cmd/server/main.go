@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/skygeario/docker_registry_auth/pkg/auth"
 	"github.com/skygeario/docker_registry_auth/pkg/httphandler"
 )
@@ -26,6 +28,7 @@ func main() {
 		Expiration: expiration,
 		CertFile:   certFile,
 		KeyFile:    keyFile,
+		LogLevel:   logrus.DebugLevel,
 	})
 	if err != nil {
 		log.Fatalf("failed to start server: %v\n", err)

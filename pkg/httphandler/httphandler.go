@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/skygeario/docker_registry_auth/pkg/auth"
 	"github.com/skygeario/docker_registry_auth/pkg/random"
 	"github.com/skygeario/docker_registry_auth/pkg/signing"
@@ -18,6 +20,8 @@ type Options struct {
 	CertFile   string
 	KeyFile    string
 	Key        *signing.Key
+	LogLevel   logrus.Level
+	Logger     *logrus.Logger
 }
 
 type Response struct {
@@ -31,28 +35,44 @@ func NewOptions(options Options) (Options, error) {
 		return options, err
 	}
 	options.Key = key
+
+	logger := logrus.New()
+	logger.SetLevel(options.LogLevel)
+	options.Logger = logger
+
 	return options, nil
 }
 
 func NewHandler(options Options, auther auth.Auth) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := options.Logger
 		now := time.Now().Unix()
+
+		logger.Debugf("%v %v %v", r.Method, r.URL.String(), r.Proto)
+		for name, values := range r.Header {
+			for _, value := range values {
+				logger.Debugf("%v: %v", name, value)
+			}
+		}
 
 		authRequest, err := auth.ParseRequest(r)
 		if err != nil {
 			w.WriteHeader(400)
+			logger.WithError(err).Debug("auth.ParseRequest")
 			return
 		}
 
 		scopes, err := auther.AuthenticateAndAuthorize(authRequest)
 		if err != nil {
 			w.WriteHeader(401)
+			logger.WithError(err).Debug("auth.AuthenticateAndAuthorize")
 			return
 		}
 
 		jwtID, err := random.RandomString(64)
 		if err != nil {
 			w.WriteHeader(500)
+			logger.WithError(err).Debug("random.RandomString")
 			return
 		}
 		access := scopesToAccess(scopes)
@@ -75,11 +95,13 @@ func NewHandler(options Options, auther auth.Auth) http.Handler {
 		payload, err := token.MakePayload(header, claimSet)
 		if err != nil {
 			w.WriteHeader(500)
+			logger.WithError(err).Debug("token.MakePayload")
 			return
 		}
 		signature, err := options.Key.Sign(payload)
 		if err != nil {
 			w.WriteHeader(500)
+			logger.WithError(err).Debug("key.Sign")
 			return
 		}
 		tokenStr := token.MakeToken(payload, signature)
@@ -90,6 +112,7 @@ func NewHandler(options Options, auther auth.Auth) http.Handler {
 		body, err := json.Marshal(response)
 		if err != nil {
 			w.WriteHeader(500)
+			logger.WithError(err).Debug("json.Marshal")
 			return
 		}
 		w.Header().Set("content-type", "application/json")
